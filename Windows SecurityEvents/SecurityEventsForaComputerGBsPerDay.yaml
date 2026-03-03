@@ -1,0 +1,26 @@
+SecurityEvent
+| where TimeGenerated > ago(7d) // ← Change 7d to 1d / 30d / 90d etc. as needed
+// ================== EDIT COMPUTER FILTER HERE ==================
+| where Computer contains "YOUR COMPUTER NAME HERE" // ← CHANGE THIS LINE
+// Examples:
+// | where Computer == "DC01.contoso.com"
+// | where Computer startswith "WEB"
+// | where Computer in ("SRV01", "SRV02", "APP01")
+// ==================================================================
+| summarize
+TotalEvents = count(),
+TotalBilledBytes = sum(_BilledSize), // Most accurate for billing
+AvgBilledBytes = avg(_BilledSize)
+by Computer
+| extend DaysObserved = 7.0 // ← Fixed: separate extend step
+| extend
+EventsPerDay = TotalEvents / DaysObserved,
+GBPerDay = TotalBilledBytes / (DaysObserved * 1024 * 1024 * 1024)
+| project
+Computer,
+TotalEvents,
+EventsPerDay = round(EventsPerDay, 0),
+AvgEventSizeKB = round(AvgBilledBytes / 1024, 2),
+TotalGB_Last7d = round(TotalBilledBytes / (1024*1024*1024), 3),
+EstimatedGBPerDay = round(GBPerDay, 4) // ← THIS IS YOUR DAILY TOTAL
+| order by EstimatedGBPerDay desc

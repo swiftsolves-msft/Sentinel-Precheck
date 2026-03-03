@@ -1,0 +1,24 @@
+SecurityEvent
+| where TimeGenerated > ago(7d) // ← Change 7d to 1d / 30d / etc. as needed
+// ================== ADD YOUR COMPUTER FILTER HERE ==================
+| where Computer contains "YOUR COMPUTER NAME HERE" // ← EDIT THIS LINE
+// Examples:
+// | where Computer == "DC01.contoso.com"
+// | where Computer startswith "WEB"
+// | where Computer in ("SRV01", "SRV02", "SRV03")
+// | where Computer matches regex "WEB-.*"
+// ==================================================================
+| summarize
+TotalEvents = count(),
+AvgBilledBytes = avg(_BilledSize)
+by EventID
+| extend
+EventsPerDay = TotalEvents / 7.0,
+GBPerDay = (TotalEvents / 7.0 * AvgBilledBytes) / (1024 * 1024 * 1024) // ← FIXED: explicit bytes instead of 1GB
+| project
+EventID,
+TotalEvents,
+EventsPerDay = round(EventsPerDay, 2),
+AvgBilledBytes = round(AvgBilledBytes, 0),
+GBPerDay = round(GBPerDay, 4)
+| order by GBPerDay desc
